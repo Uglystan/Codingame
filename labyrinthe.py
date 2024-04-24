@@ -1,10 +1,12 @@
 import sys
 import math
+from queue import Queue
+import time
 
 
 # Dans node_map qui est un dict {tuple, [tuple]} je met pour chaque position (y, x) les possibilites
 # [(y, x + 1), (y, x - 1), (y + 1, x), (y - 1, x)] a partir de la map que je recois
-def update_node_map(map, r, c):
+def update_node_map_explore(map, r, c):
     node_map = {}
     y = 0
     while y < r:
@@ -23,6 +25,31 @@ def update_node_map(map, r, c):
                     value = (y + 1, x)
                     node_map[key].append(value)
                 if y - 1 >= 0 and map[y - 1][x] != '#' and map[y - 1][x] != '?' and map[y - 1][x] != 'C':
+                    value = (y - 1, x)
+                    node_map[key].append(value)
+            x += 1
+        y += 1
+    return (node_map)
+
+def update_node_map(map, r, c):
+    node_map = {}
+    y = 0
+    while y < r:
+        x = 0
+        while x < c:
+            if map[y][x] != "#" and map[y][x] != "?":
+                key = (y, x)
+                node_map[key] = []
+                if x + 1 < c and map[y][x + 1] != '#' and map[y][x + 1] != '?':
+                    value = (y, x + 1)
+                    node_map[key].append(value)
+                if x - 1 >= 0 and map[y][x - 1] != '#' and map[y][x - 1] != '?':
+                    value = (y, x - 1)
+                    node_map[key].append(value)
+                if y + 1 < r and map[y + 1][x] != '#' and map[y + 1][x] != '?':
+                    value = (y + 1, x)
+                    node_map[key].append(value)
+                if y - 1 >= 0 and map[y - 1][x] != '#' and map[y - 1][x] != '?':
                     value = (y - 1, x)
                     node_map[key].append(value)
             x += 1
@@ -66,7 +93,7 @@ def explore_map():
         for i in range(r):
             row = input()  # C of the characters in '#.TC?' (i.e. one line of the ASCII maze).
             map.append(row)
-        node_map = update_node_map(map, r, c)
+        node_map = update_node_map_explore(map, r, c)
 
         # Ajoute des possibiliete pour une pos each_pos liste, pos tuple
         for each_posibilite in node_map[pos]:
@@ -107,6 +134,54 @@ def explore_map():
         if not pile:
             return (map, pos)
 
+def find_pos(map, car):
+    y = 0
+    while y < len(map):
+        x = 0
+        while x < len(map[y]):
+            if map[y][x] == car:
+                return (y, x)
+            x += 1
+        y += 1
+
+
+def BFS_shortest_way(node_map, pos_start, pos_end):
+    path = Queue()
+    path.put(pos_start)
+    marque = dict()
+    marque[pos_start] = None
+    while not path.empty():
+        node = path.get()
+        if node == pos_end:
+            break
+        for sub_node in node_map[node]:
+            if sub_node not in marque:
+                path.put(sub_node)
+                marque[sub_node] = node
+    
+    current = pos_end
+    pat = []
+    while current != pos_start: 
+        pat.append(current)
+        current = marque[current]
+    pat.append(pos_start)
+    pat.reverse()
+    print(pat, file=sys.stderr)
+    return (pat)
+
+
+def go_to_path(path, pos_act):
+    pos_lst = [pos_act[0], pos_act[1]]
+    i = 1
+    while i < len(path):
+
+        print(move(pos_lst, path[i]))
+        i += 1
+
+        kr, kc = [int(i) for i in input().split()]
+        pos_lst = [kr, kc]
+        for k in range(r):
+            row = input()
 
 # r: number of rows.
 # c: number of columns.
@@ -118,8 +193,12 @@ trace = []
 while True:
     tpl = explore_map()
     map = tpl[0]
-    pos = tpl[1]
-    for row in map:
-        print(row, file=sys.stderr)
-    print(pos, file=sys.stderr)
+    pos_act = tpl[1]
+    pos_C = find_pos(map, "C")
+    pos_T = find_pos(map, "T")
+    node_map = update_node_map(map, r, c)
+    path = BFS_shortest_way(node_map, pos_act, pos_C)
+    go_to_path(path, pos_act)
+    path = BFS_shortest_way(node_map, pos_C, pos_T)
+    go_to_path(path, pos_C)
         
